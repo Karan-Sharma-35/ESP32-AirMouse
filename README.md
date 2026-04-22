@@ -11,7 +11,7 @@
 With the use of the the bluetooth and wifi capabilities of the ESP32, I plan to use a regular joystick shield to make a working AirCouse that can be used wherever I go. The AirMouse should be able to also handle mouse button 4 and mouse button 5 setup that a lot of modern mice have
 
 ### Progress:
-Currently testing the Bluetooth connection to the laptop after having tested the joystick input response using the serial monitor on the Arduino IDE
+Currently testing the hardware as had issues with the ESP32 shorting out part of the board.
 
 ### Sources used so far:
 - https://protosupplies.com/wp-content/uploads/2018/07/Funduino-Joystick-Shield-Connections.jpg
