@@ -1,5 +1,6 @@
 #include <BleConnectionStatus.h>
 #include <BleMouse.h>
+#include <BLEDevice.h>
 
 // Brownout overrides (just in case)
 #include "soc/soc.h"
@@ -17,33 +18,40 @@ BleMouse bleMouse("Frankenstein", "Espressif", 100);
 const int PIN_X = 34; //horizaontal axis
 const int PIN_Y = 35; //vertical movement
 
-// //the buttons orientation of joystick being at the top
-// const int PIN_BTN_C = 27; //bottom yellow button (MB4/back)
-// const int PIN_BTN_A = 13; //top yel btn (MB5/forward)
-const int PIN_BTN_B = 14; //left green btn (left click)
-const int PIN_BTN_D = 26; //right green button (right click)
+//the buttons orientation of joystick being at the top
+const int PIN_BTN_C = 27; //bottom yellow button (MB4/back)
+const int PIN_BTN_A = 13; //top yel btn (MB5/forward)
+const int PIN_BTN_B = 14; //right green btn (right click)
+const int PIN_BTN_D = 26; //left green button (left click)
 
-// //small buttons I will use as home and map ig
-// const int PIN_BTN_E = 25; //bottom button ()
-// const int PIN_BTN_F = 33; //top button (scroll mode toggle)
+// //small buttons I will use as sensitivity adjusters
+const int PIN_BTN_E = 25; //right button (lower sens)[traditional mouse decrease]
+const int PIN_BTN_F = 33; //left button (increase sens)[traditional mouse increase]
 
 // //joystick btn
 const int PIN_BTN_K = 32; //joystick button (middle click)
 
-//NEW: Status LED Pin (Usually GPIO 2)
+//Status LED Pin (Usually GPIO 2)
 const int STATUS_LED = 2;
+
+//state tracker for the BLE connection
+bool wasConnected = false; //default
 
 //mouse code
 
 //config for the "cursor"
-const int DEADZONE = 400; //Ignores minor drift
+const int DEADZONE = 600; //Ignores minor drift
 const int CENTERVAL = 1930; //joystick center
-const int SENSITIVITY = 120; //Higher sens = slower cursor
+int sensitivity = 120; //Higher sens = slower cursor (changed so I can add functionality to change the sens using F and E)
 
 //state tracker for the btns
 int lastBtnKState = HIGH; //High meaning that it is unpressed due to INPUT_PULLUP
 int lastBtnBState = HIGH; //High meaning that it is unpressed due to INPUT_PULLUP
 int lastBtnDState = HIGH; //High meaning that it is unpressed due to INPUT_PULLUP
+int lastBtnAState = HIGH; //High meaning that it is unpressed due to INPUT_PULLUP
+int lastBtnCState = HIGH; //High meaning that it is unpressed due to INPUT_PULLUP
+int lastBtnEState = HIGH; //High meaning that it is unpressed due to INPUT_PULLUP
+int lastBtnFState = HIGH; //High meaning that it is unpressed due to INPUT_PULLUP
 
 //void setup cause this is C and void means no data type assignment is needed
 void setup(){
@@ -63,6 +71,10 @@ void setup(){
   pinMode(PIN_BTN_K, INPUT_PULLUP); //since it wires straight to gnd it needs to be INPUT_PULLUP
   pinMode(PIN_BTN_B, INPUT_PULLUP); //since it wires straight to gnd it needs to be INPUT_PULLUP
   pinMode(PIN_BTN_D, INPUT_PULLUP); //since it wires straight to gnd it needs to be INPUT_PULLUP
+  pinMode(PIN_BTN_A, INPUT_PULLUP); //since it wires straight to gnd it needs to be INPUT_PULLUP
+  pinMode(PIN_BTN_C, INPUT_PULLUP); //since it wires straight to gnd it needs to be INPUT_PULLUP
+  pinMode(PIN_BTN_E, INPUT_PULLUP); //since it wires straight to gnd it needs to be INPUT_PULLUP
+  pinMode(PIN_BTN_F, INPUT_PULLUP); //since it wires straight to gnd it needs to be INPUT_PULLUP
 
   Serial.println("Starting BLE Testing...");
   bleMouse.begin();
@@ -71,20 +83,41 @@ void setup(){
 //void loop time for the ESP32 to continually check the inputs
 void loop(){
 
-  //LED Logic
-  if(bleMouse.isConnected()){
-    digitalWrite(STATUS_LED, HIGH); //solid blue when connected
+  //connection checker
+  bool isConnected = bleMouse.isConnected();//local variable so it is easier to use multiple times
+
+  //When Connection has just been established
+  if(isConnected && !wasConnected){
+    Serial.println("Frankenstein has risen!");
+    digitalWrite(STATUS_LED, HIGH); //updating blue LED
+    wasConnected = true; //updating the flag
   }
-  //search mode
-  else{
-    //blinking in search mode
+
+  //Just diconnected
+  else if(!isConnected && wasConnected){
+    Serial.println("Frankenstein needs some juice!");
+    digitalWrite(STATUS_LED, LOW);
+
+    //Delay to ensure the board has enough time to restart
+    delay(500);
+
+    //Restarting the advertising
+    BLEDevice::startAdvertising();
+
+    wasConnected = false; //updating the flag
+  }
+
+  //LED logic
+  if(!isConnected){
     if((millis()/500)%2 == 0){
-      digitalWrite(STATUS_LED, HIGH); //solid blue when connected
+      digitalWrite(STATUS_LED, HIGH);
     }
     else{
       digitalWrite(STATUS_LED, LOW);
     }
   }
+
+  //mouse code start
 
   //Joystick logic
   if(bleMouse.isConnected()){
@@ -106,8 +139,8 @@ void loop(){
     }
 
     // calculating how far to move the mouse based on sens
-    int xMove = xVal/SENSITIVITY;
-    int yMove = yVal/SENSITIVITY;
+    int xMove = xVal/sensitivity;
+    int yMove = yVal/sensitivity;
 
     //making sure signal is sent only if there is actual movement
     if(xMove != 0 || yMove != 0){
@@ -153,12 +186,14 @@ void loop(){
       if(currBtnBState == LOW){
         //LOW shows that the button was pressed
         bleMouse.press(MOUSE_RIGHT);
-        Serial.println("Right Click has been Pressed");
+        //commented out to prevent serial monitor clutter
+        // Serial.println("Right Click has been Pressed");
       }
       else{
         //meaning it is on high and button has been released
         bleMouse.release(MOUSE_RIGHT);
-        Serial.println("Right click has been Released");
+        //commented out to prevent serial monitor clutter
+        // Serial.println("Right click has been Released");
       }
 
       //updating the state to prevent spamming
@@ -179,16 +214,141 @@ void loop(){
       if(currBtnDState == LOW){
         //LOW shows that the button was pressed
         bleMouse.press(MOUSE_LEFT);
-        Serial.println("Left Click has been Pressed");
+        //commented out to prevent serial monitor clutter
+        // Serial.println("Left Click has been Pressed");
       }
       else{
         //meaning it is on high and button has been released
         bleMouse.release(MOUSE_LEFT);
-        Serial.println("Left click has been Released");
+        //commented out to prevent serial monitor clutter
+        // Serial.println("Left click has been Released");
       }
 
       //updating the state to prevent spamming
       lastBtnDState = currBtnDState;
+
+      //adding a delay for consistency
+      delay(20);
+    }
+
+    //MB5 click logic
+    
+    //updating state based on the input
+    int currBtnAState = digitalRead(PIN_BTN_A);
+
+    //checking if the button state changed after the last loop
+    if(currBtnAState != lastBtnAState){
+
+      if(currBtnAState == LOW){
+        //LOW shows that the button was pressed
+        bleMouse.press(MOUSE_FORWARD);
+        //commented out to prevent serial monitor clutter
+        Serial.println("MB5 Click has been Pressed");
+      }
+      else{
+        //meaning it is on high and button has been released
+        bleMouse.release(MOUSE_FORWARD);
+        //commented out to prevent serial monitor clutter
+        Serial.println("MB5 click has been Released");
+      }
+
+      //updating the state to prevent spamming
+      lastBtnAState = currBtnAState;
+
+      //adding a delay for consistency
+      delay(20);
+    }
+
+    //MB4 click logic
+    
+    //updating state based on the input
+    int currBtnCState = digitalRead(PIN_BTN_C);
+
+    //checking if the button state changed after the last loop
+    if(currBtnCState != lastBtnCState){
+
+      if(currBtnCState == LOW){
+        //LOW shows that the button was pressed
+        bleMouse.press(MOUSE_BACK);
+        //commented out to prevent serial monitor clutter
+        Serial.println("MB4 Click has been Pressed");
+      }
+      else{
+        //meaning it is on high and button has been released
+        bleMouse.release(MOUSE_BACK);
+        //commented out to prevent serial monitor clutter
+        Serial.println("MB4 click has been Released");
+      }
+
+      //updating the state to prevent spamming
+      lastBtnCState = currBtnCState;
+
+      //adding a delay for consistency
+      delay(20);
+    }
+
+    //Sensitivity increase (in the traditional mouse sense which in code is lower sens)
+    
+    //updating state based on the input
+    int currBtnFState = digitalRead(PIN_BTN_F);
+
+    //checking if the button state changed after the last loop
+    if(currBtnFState != lastBtnFState){
+
+      if(currBtnFState == LOW){
+        //"increasing the sens by 10"
+        sensitivity -= 10;
+
+        //just to make sure we dont go to 0
+        if (sensitivity < 10) {
+           sensitivity = 10; // Never let it drop below 10!
+        }
+
+        //commented out to prevent serial monitor clutter
+        Serial.print("Current Sens (rmb lower num means higher sens): ");
+        Serial.println(sensitivity);
+      }
+      //not sure if I need this block
+      // else{
+      //   //commented out to prevent serial monitor clutter
+      //   Serial.println("Sens up click has been Released");
+      // }
+
+      //updating the state to prevent spamming
+      lastBtnFState = currBtnFState;
+
+      //adding a delay for consistency
+      delay(20);
+    }
+
+    //Sensitivity decrease (in the traditional mouse sense which in code is higher sens)
+    
+    //updating state based on the input
+    int currBtnEState = digitalRead(PIN_BTN_E);
+
+    //checking if the button state changed after the last loop
+    if(currBtnEState != lastBtnEState){
+
+      if(currBtnEState == LOW){
+        //"increasing the sens by 10"
+        sensitivity += 10;
+
+        //so we dont go over a cerain amt
+        if (sensitivity > 350) {
+           sensitivity = 350; // Never let it go above 350!
+        }
+        //commented out to prevent serial monitor clutter
+        Serial.print("Current Sens (rmb higher num means lower sens): ");
+        Serial.println(sensitivity);
+      }
+      //not sure if I need this block
+      // else{
+      //   //commented out to prevent serial monitor clutter
+      //   Serial.println("Sens up click has been Released");
+      // }
+
+      //updating the state to prevent spamming
+      lastBtnEState = currBtnEState;
 
       //adding a delay for consistency
       delay(20);
