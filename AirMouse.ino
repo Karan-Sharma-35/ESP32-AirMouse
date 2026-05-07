@@ -40,7 +40,7 @@ bool wasConnected = false; //default
 //mouse code
 
 //config for the "cursor"
-const int DEADZONE = 600; //Ignores minor drift
+const int DEADZONE = 850; //Ignores minor drift
 const int CENTERVAL = 1930; //joystick center
 int sensitivity = 120; //Higher sens = slower cursor (changed so I can add functionality to change the sens using F and E)
 
@@ -140,7 +140,7 @@ void loop(){
 
     // calculating how far to move the mouse based on sens
     int xMove = xVal/sensitivity;
-    int yMove = yVal/sensitivity;
+    int yMove = -1*(yVal/sensitivity);
 
     //making sure signal is sent only if there is actual movement
     if(xMove != 0 || yMove != 0){
