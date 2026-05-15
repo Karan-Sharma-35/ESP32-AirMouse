@@ -1,6 +1,9 @@
 #include <BleConnectionStatus.h>
 #include <BleMouse.h>
 #include <BLEDevice.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 // Brownout overrides (just in case)
 #include "soc/soc.h"
@@ -12,6 +15,14 @@ BleMouse bleMouse("Frankenstein", "Espressif", 100);
 #include <Arduino.h>
 #include <HardwareSerial.h>
 
+//OLED defines
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define OLED_RESET    -1 // This tells the library your screen doesn't have a dedicated reset pin
+
+//Creating the display object
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
 //pin definitions
 
 //joystick pins
@@ -19,17 +30,20 @@ const int PIN_X = 34; //horizaontal axis
 const int PIN_Y = 35; //vertical movement
 
 //the buttons orientation of joystick being at the top
-const int PIN_BTN_C = 27; //bottom yellow button (MB4/back)
-const int PIN_BTN_A = 13; //top yel btn (MB5/forward)
-const int PIN_BTN_B = 14; //right green btn (right click)
-const int PIN_BTN_D = 26; //left green button (left click)
+const int PIN_BTN_C = 27; //Green button (MB4/back)
+const int PIN_BTN_A = 13; //Blue btn (MB5/forward)
+const int PIN_BTN_B = 14; //Red btn (right click)
+const int PIN_BTN_D = 26; //Black button (left click)
 
-// //small buttons I will use as sensitivity adjusters
-const int PIN_BTN_E = 25; //right button (lower sens)[traditional mouse decrease]
-const int PIN_BTN_F = 33; //left button (increase sens)[traditional mouse increase]
+//small buttons I will use as sensitivity adjusters
+const int PIN_BTN_E = 25; //lower button (lower sens)[traditional mouse decrease]
+const int PIN_BTN_F = 33; //upper button (increase sens)[traditional mouse increase]
 
-// //joystick btn
+//joystick btn
 const int PIN_BTN_K = 32; //joystick button (middle click)
+
+//OLED buttons
+/* Green wire goes to Pin 22 and Blue wire goes to Pin 21 */
 
 //Status LED Pin (Usually GPIO 2)
 const int STATUS_LED = 2;
@@ -76,7 +90,23 @@ void setup(){
   pinMode(PIN_BTN_E, INPUT_PULLUP); //since it wires straight to gnd it needs to be INPUT_PULLUP
   pinMode(PIN_BTN_F, INPUT_PULLUP); //since it wires straight to gnd it needs to be INPUT_PULLUP
 
-  Serial.println("Starting BLE Testing...");
+  // Initialize the OLED display
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
+    Serial.println(F("OLED failed to initialize"));
+    // We don't stop the code here so the mouse still works even if screen fails
+  }
+
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.display(); // Start with a blank screen
+
+  Serial.println("Initiating lightning strike.");
+  //just cuz
+  Serial.print(".");
+  Serial.print(".");
+  Serial.print(".");
+  Serial.print(".");
+  updateDisplay();
   bleMouse.begin();
 }
 
@@ -140,7 +170,7 @@ void loop(){
 
     // calculating how far to move the mouse based on sens
     int xMove = xVal/sensitivity;
-    int yMove = -1*(yVal/sensitivity);
+    int yMove = (yVal/sensitivity);
 
     //making sure signal is sent only if there is actual movement
     if(xMove != 0 || yMove != 0){
@@ -305,14 +335,10 @@ void loop(){
         }
 
         //commented out to prevent serial monitor clutter
-        Serial.print("Current Sens (rmb lower num means higher sens): ");
-        Serial.println(sensitivity);
+        // Serial.print("Current Sens (rmb lower num means higher sens): ");
+        // Serial.println(sensitivity);
+        updateDisplay();
       }
-      //not sure if I need this block
-      // else{
-      //   //commented out to prevent serial monitor clutter
-      //   Serial.println("Sens up click has been Released");
-      // }
 
       //updating the state to prevent spamming
       lastBtnFState = currBtnFState;
@@ -338,14 +364,10 @@ void loop(){
            sensitivity = 350; // Never let it go above 350!
         }
         //commented out to prevent serial monitor clutter
-        Serial.print("Current Sens (rmb higher num means lower sens): ");
-        Serial.println(sensitivity);
+        // Serial.print("Current Sens (rmb higher num means lower sens): ");
+        // Serial.println(sensitivity);
+        updateDisplay();
       }
-      //not sure if I need this block
-      // else{
-      //   //commented out to prevent serial monitor clutter
-      //   Serial.println("Sens up click has been Released");
-      // }
 
       //updating the state to prevent spamming
       lastBtnEState = currBtnEState;
@@ -357,4 +379,21 @@ void loop(){
     //delay for stability
     delay(10);
   }
+}
+
+void updateDisplay(){
+
+  display.clearDisplay(); //start blank
+  display.setTextSize(1); //set small text (can be adjusted based on testing)
+  display.setCursor(0,0); //keeping it to the top left
+  display.print("Sens:");
+
+  //Calculations for the displayed sensitivity values
+  int calculatedSens = map(sensitivity, 350, 10, 400, 3200);
+
+  display.setCursor(0,15); //move down for the actual sensitivity value
+  display.setTextSize(2); //increase number size
+  display.print(calculatedSens);
+
+  display.display(); //pushing to display everything
 }
