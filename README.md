@@ -17,6 +17,7 @@ Hardware testing is completed, there will be a demo video for the prototype. Cur
 <img width="1600" height="1200" alt="Prototype Circuit diagram" src="https://github.com/user-attachments/assets/c738ae9e-6685-475c-97f6-af07d94cab40" />
 
 ### Prototype Test Video:
+https://github.com/user-attachments/assets/bc51f338-7813-4573-9226-b972f68b9daf
 
 ### Sources used so far:
 - https://protosupplies.com/wp-content/uploads/2018/07/Funduino-Joystick-Shield-Connections.jpg
