@@ -22,6 +22,8 @@ https://github.com/user-attachments/assets/bc51f338-7813-4573-9226-b972f68b9daf
 ### Updated Circuit Schematic (Made using a software instead of being hand drawn):
 <img width="1446" height="1027" alt="image" src="https://github.com/user-attachments/assets/0e4c3e2e-ae20-42a4-99c9-55efe4c94507" />
 
+### Final PCB Desgin
+<img width="655" height="746" alt="image" src="https://github.com/user-attachments/assets/7bb6f935-6227-45d7-8218-c7edb9468a6f" />
 
 ### Sources used so far:
 - https://protosupplies.com/wp-content/uploads/2018/07/Funduino-Joystick-Shield-Connections.jpg
